@@ -1,0 +1,120 @@
+In this page i will rithe the qestions that i see at the RHCE.
+You will open the test and see 5 VM, 1 is the control node and 4 more nodes to controle with ansible.
+in the test you wiil use some user that they wiil create for you in my test I use george and he alredy have sudo priviliges.
+in the test they build the connection of the ssh befor the tset but you can  see it in /etc/hosts.
+
+qestions:
+1. install ansible to the control host
+   create the inventory with 3 main groups dev,test,prod and 1 children group
+   create ansible.cfg and inside you need only inventory,collection_path,roles_path
+
+Answer 1.
+dnf install -y ansible
+cd /home/george/somthing
+vim inventory
+
+[dev]
+node1
+
+[test]
+node2
+node3
+
+[prod]
+node3
+node4
+
+[public:children]
+dev
+prod
+
+// to get the line to create the ansible.cfg you cat cat /etc/ansible/ansible.cfg and there you will see the line to copy
+ansible-config init --disabled > ansible.cfg
+// inside you will see all the line in #. you will only find this lines and delete the # and add what they tell you to add 
+inventory = ./inventory
+collections_paths = /home/george/.ansible/collections:/usr/share/ansible/collections
+roles_path = /home/george/plays/roles:/usr/share/ansible/roles
+
+
+qestion 2.
+install 3 files to the a directory mycollection
+add this files to the ansible collection
+
+answer:
+mkdir -p mycollection
+cd mycollection
+wget http:/this/is/url
+// to add somting to the collection of ansible you need to know this line
+ansible-galaxy collection install -r name_file -p /home/george/somthing/mycollection
+
+qestion 3.
+create playbook that colled somthing and add this 2 repositorys to all groups
+
+answer:
+vim somthing.yml
+
+---
+- name: Configure local repositories with GPG check
+  hosts: all
+  become: true
+
+  tasks:
+    - name: Import GPG key
+      rpm_key:
+        state: present
+        key: /etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
+
+    - name: Configure BaseOS repository
+      yum_repository:
+        name: BaseOS
+        description: RHEL 9 BaseOS Local Repo
+        baseurl: file:///reposerver/BaseOS
+        enabled: true
+        gpgcheck: true
+        gpgkey: file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
+
+    - name: Configure AppStream repository
+      yum_repository:
+        name: AppStream
+        description: RHEL 9 AppStream Local Repo
+        baseurl: file:///reposerver/AppStream
+        enabled: true
+        gpgcheck: true
+        gpgkey: file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
+
+qestion 4.
+create playbook called somthing that will exectit this:
+install packages httpd and php on dev and test groups
+install package 'Development tools' on prod
+make sure all the packages on prod is up to date
+
+answer:
+- name: install packages
+  hosts: dev,test
+  become: true
+
+  tasks:
+- name: Install packages 
+  dnf:
+    name:
+      - httpd
+      - php
+    state: present
+
+- name: install packages on prod
+  hosts: prod
+  become: true
+
+  tasks:
+    - name: install group of packages
+      dnf:
+        name: "@Development Tools"
+        state: present
+
+    - name: make sure all packages up to date
+      dnf:
+        name: "*"
+        state: latest
+    
+
+
