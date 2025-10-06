@@ -1,6 +1,6 @@
 #  RHCE Practice – Real Exam Style Questions
 
-This page contains questions and answers from RHCE practice tests.  
+## This page contains questions and answers from RHCE practice tests.  
 You have 5 VMs: 1 control node and 4 managed nodes.  
 SSH and `/etc/hosts` are pre-configured. User `george` has sudo privileges.
 
