@@ -115,6 +115,296 @@ answer:
       dnf:
         name: "*"
         state: latest
+
+qestion 5.
+create a playbook that called somthing taht create a file in eche group with difrent text dev: "welcome to dev servers" test: "welcome to test servers" prod: "welcome to prod servers"
+
+answer:
+---
+- name: create text file for group ...
+  hosts: group
+  become: true
+
+ tasks:
+   - name: somting
+     copy:
+       dest: /file/path
+       content: the content
+
+qestion 6.
+change the selinux to enforsing mode
+
+answer:
+// there 2 ways to change the selinux i will show you buoth
+the first: use selinux modul
+
+- name: change selinux
+  selinux:
+    policy: targeted
+    state: enforcing
+
+the sec: use lineinfile modul 
+// this way you can find in the exapels of lineinfile modul
+
+- name: change selinux
+  lineinfile:
+    path: /etc/selinux/config
+    regex: ‘^SELINUX=’
+    line: ‘SELINUX=enforcing’
+
+qestion 7.
+install 2 files to the roles directory and change the first one name to somthing and create a playbook that exeite this roles
+
+answer:
+mkdir -p roles
+cd roles
+wget http://the/file/url
+mv the_first_file somthing
+vim somthing.yml
+
+---
+- name: use the roles
+  hosts: all
+  become: true
+
+  roles:
+  - somthing
+  - role2
+
+qestion 8.
+create a role that called apache that install httpd to the groups. create a playbook the exeut it
+
+answer:
+//to create a role you need to use this line
+ansible-galaxy init apache
+vim /apache/tasks/main.yml
+
+- name: install httpd
+  dnf:
+    name: httpd
+    state: present
+
+// create the playbook
+vim somthing.yml
+
+- name: use the apache role
+  hosts: all
+  become: true
+
+  roles:
+  - apache
+
+qestion 9.
+create a playbook that install httpd and firewalld and make sure that they run after reboot the mechin
+create a template for eche machin the file called template.j2
+
+answer:
+vim template.j2
+<html>
+  <body>
+    <h1>{{ page_content }}</h1>
+  </body>
+</html>
+
+mkdir -p group_vars
+echo "page_content: 'This is a WEB server'" > group_name.yml
+echo "page_content: 'This is a DATABASE server'" > group_name.yml
+
+---
+- name: install httpd firewall and create template
+  hosts: all
+  become: true
+
+  tasks:
+  - name: install httpd and firewalld
+    dnf:
+      name: 
+        - httpd
+        - firewalld
+		state: present
+
+   - name: open port 80
+	  firewalld:
+	    port: 80/tcp
+       permanent: true
+       state: enabled
+       immediate: yes
+
+   - name: enable the services
+     service:
+       name: “{{item}}”
+       state: restarted
+       enabled: true
+     loop:
+     - httpd
+     - firewalld
+
+    - name: deploy the web page template
+      template:
+        src: index.html.j2
+        dest: /var/www/html/index.html
+
+qestion 10.
+create a directory called somthing and make inside a file index.html make this directory linked to /var/html/www/ so that if you curl the node you will see what inside index.html
+
+- name: create linked dir
+  hosts: all
+  become: true
+
+  tasks:
+  - name: create dir
+    file:
+      path: /path/to/the/dir
+      state: directory
+
+  - name: create index.html
+     copy:
+       dest: /path/to/the/dir/index.html
+       content: the content
+
+  - name: create the link
+    file:
+      src: /mydir
+      dest: /var/www/html/mydir
+      state: link
+
+qestion 11.
+install file from this url http://file/url and change the file base on machin you on like: hostname, bios_version, RAM in mb, vda size, vdb size and if somthing dont have writh NONE
+
+answer:
+// you can find it by "ansible localhost -m setup >setup" and then vim setup and look ip for what you need
+---
+- name: create file and change the text
+  hosts: all
+  become: true
+
+  tasks:
+  - name: install the file
+    get_url:
+    url: http://server/file.txt
+    dest: /tmp/file.txt
+                              
+  - name: change the text
+	 lineinfile:
+      path: /tmp/file.txt
+    	regexp: 'HOST_NAME='
+		line: ‘HOST_NAME={{ansible_hostname}}’
+
+create the lineinfile modul forr what you need to do: ansible_hostname, ansible_bios_version, ansible_memtotal_mb, ansible_devices.sda.size|default('NONE'), ansible_devices.sdb.size|default('NONE')
+
+qestion 12.
+create a playbook that creat a partition, vg, lv, file system, and monut it permenet
+
+answer:
+---
+- name: create new partition
+  hosts: all
+  become: true
+
+  tasks:
+  - name: create new partition
+    parted:
+  ​​    device: /dev/vdb
+      number: 1
+      state: present
+      part_start: 1Mib
+      part_end: 800MiB
+
+  - name: create vg
+      lvg:
+    	  vg: vg_database
+    	  pvs: /dev/vdb1
+
+  - name: create lv
+      lvol:
+    	  vg: vg_database
+    	  lv: lv_mysql
+    	  size: 512m
+
+  - name: create file system
+     filesystem:
+       fstype: ext4
+       dev: /dev/vg_database/lv_mysql
+
+  - name: create dit for mount
+    file:
+      path: /dir/path
+      state: directory
+
+  - name: mount the file system
+    mount:
+      path: /dir/path
+      src: /dev/vg_database/lv_mysql
+      fstype: ext4
+      state: mounted
+
+qestion 13.
+create a file called secret and put the password: password
+create a vault with the password to the vault as what you writh in secret and inside put user_password equal devops, the vault called somthing.yml
+
+answer:
+echo 'password' > secret
+ansible-vault create (file_name) --vault-password-file=/path/to/file/secret
+// inside you put the user_password
+
+---
+user_password: devops
+
+qestion 14.
+download a file that contain users and there jobes
+create a playbook that is locked by privios file
+the playbook will add users to the nodes by the job they have in the file you downloaded befour and the password for the users will be the valu for user_password in privios qestion
+
+answer:
+wget http://file/url
+
+ansible-vault encrypt file_name --vault-password-file=/path/to/file
+
+---
+- name: add users
+  hosts: groups
+  become: true
+  vars_files:
+    - /encrypted/file/with/the/users/passwords
+    - /file/with/the/list/of/users
+
+ tasks:
+ - name: add users
+   user:
+     name: “{{item.name}}”
+     password:”{{ (something from file) | password_hash(‘sha512’)}}”
+     group: something
+   loop: “{{users}}”
+   when: item.job == ‘something’
+
+qestion 15.
+change the vault password from somting to somting the vault called somting.yml
+
+answer:
+ansible-vault rekey file_name --ask-vault-pass
+
+qestion 16.
+create a cron job that execut by user natasha and do somthing every 2 minuts
+
+answer:
+---
+- name: create crone
+  hosts: all
+  become: true
+
+  tasks:
+  - name: create the crone
+    cron:
+      name: my cron
+      user: natasha
+      minute: “*/2”
+      job: something >> file.txt
+
+
+
+
+    
+
     
 
 
