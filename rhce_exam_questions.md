@@ -38,7 +38,7 @@ You can verify host mappings in `/etc/hosts`.
    - A group named **prod** containing **node3** and **node4**
    - A child group named **public** that includes both **dev** and **prod**
 3. Create an `ansible.cfg` file with **only** these configurations:
-   - `inventory` path
+   - `inventory path`
    - `collections_paths`
    - `roles_path`
 
