@@ -19,11 +19,11 @@ You can verify host mappings in `/etc/hosts`.
 
 ### Important Notes
 
-- ✅ All tasks in this exam must be performed **from the control node**
-- ✅ Use **Ansible** to manage the other four nodes
-- ✅ The user **george** already has sudo privileges configured
-- ✅ SSH connections are pre-configured between all nodes
-- ✅ Work from `/home/george/ansible/` directory unless otherwise specified
+- All tasks in this exam must be performed **from the control node**
+- Use **Ansible** to manage the other four nodes
+- The user **george** already has sudo privileges configured
+- SSH connections are pre-configured between all nodes
+- Work from `/home/george/ansible/` directory unless otherwise specified
 
 ---
 
@@ -36,19 +36,20 @@ You can verify host mappings in `/etc/hosts`.
    - A group named **dev** containing **node1**
    - A group named **test** containing **node2** and **node3**
    - A group named **prod** containing **node3** and **node4**
-   - A child group named **public** that includes both **dev** and **prod**
+   - A group named **public** that includes both **dev** and **prod**
 3. Create an `ansible.cfg` file with **only** these configurations:
-   - `inventory path`
-   - `collections_paths`
-   - `roles_path`
+   - `inventory path` = ./inventory
+   - `collections_paths` = /home/george/mycollection
+   - `roles_path` = /home/george/roles
 
 ### Solution
 
 ```bash
 # Install Ansible
-sudo dnf install -y ansible
+dnf install -y ansible
 
 # Create working directory
+mkdir -p /home/george/ansible
 cd /home/george/ansible
 vim inventory
 ```
@@ -87,7 +88,7 @@ vim ansible.cfg
 ```ini
 [defaults]
 inventory = ./inventory
-collections_paths = /home/george/.ansible/collections:/usr/share/ansible/collections
+collections_paths = /home/george/ansible/mycollection
 roles_path = /home/george/plays/roles:/usr/share/ansible/roles
 ```
 
@@ -161,23 +162,23 @@ Create a playbook that configures local repositories on **all hosts**:
 
   tasks:
     - name: Import GPG key
-      ansible.builtin.rpm_key:
+      rpm_key:
         state: present
         key: /etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
 
     - name: Configure BaseOS repository
-      ansible.builtin.yum_repository:
+      yum_repository:
         name: BaseOS
-        description: RHEL 9 BaseOS Local Repo
+        description: 'RHEL 9 BaseOS Local Repo'
         baseurl: file:///reposerver/BaseOS
         enabled: true
         gpgcheck: true
         gpgkey: file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
 
     - name: Configure AppStream repository
-      ansible.builtin.yum_repository:
+      yum_repository:
         name: AppStream
-        description: RHEL 9 AppStream Local Repo
+        description: 'RHEL 9 AppStream Local Repo'
         baseurl: file:///reposerver/AppStream
         enabled: true
         gpgcheck: true
@@ -224,7 +225,7 @@ Create a playbook that installs packages with the following requirements:
 
   tasks:
     - name: Install httpd and php packages
-      ansible.builtin.dnf:
+      dnf:
         name:
           - httpd
           - php
@@ -236,12 +237,12 @@ Create a playbook that installs packages with the following requirements:
 
   tasks:
     - name: Install Development Tools group
-      ansible.builtin.dnf:
+      dnf:
         name: "@Development Tools"
         state: present
 
     - name: Make sure all packages are up to date
-      ansible.builtin.dnf:
+      dnf:
         name: "*"
         state: latest
 ```
@@ -282,9 +283,9 @@ Create a playbook that creates a file on each group with different content:
 
   tasks:
     - name: Create welcome file for dev
-      ansible.builtin.copy:
+      copy:
         dest: /etc/welcome.txt
-        content: "welcome to dev servers\n"
+        content: "welcome to dev servers"
 
 - name: Create text file for test group
   hosts: test
@@ -292,9 +293,9 @@ Create a playbook that creates a file on each group with different content:
 
   tasks:
     - name: Create welcome file for test
-      ansible.builtin.copy:
+      copy:
         dest: /etc/welcome.txt
-        content: "welcome to test servers\n"
+        content: "welcome to test servers"
 
 - name: Create text file for prod group
   hosts: prod
@@ -302,9 +303,9 @@ Create a playbook that creates a file on each group with different content:
 
   tasks:
     - name: Create welcome file for prod
-      ansible.builtin.copy:
+      copy:
         dest: /etc/welcome.txt
-        content: "welcome to prod servers\n"
+        content: "welcome to prod servers"
 ```
 
 **Execute:**
@@ -339,7 +340,7 @@ Create a playbook that sets SELinux to **enforcing** mode on all managed hosts.
 
   tasks:
     - name: Set SELinux to enforcing mode
-      ansible.posix.selinux:
+      selinux:
         policy: targeted
         state: enforcing
 ```
@@ -354,13 +355,13 @@ Create a playbook that sets SELinux to **enforcing** mode on all managed hosts.
 
   tasks:
     - name: Set SELinux to enforcing in config file
-      ansible.builtin.lineinfile:
+      lineinfile:
         path: /etc/selinux/config
         regexp: '^SELINUX='
         line: 'SELINUX=enforcing'
 
     - name: Set SELinux to enforcing immediately
-      ansible.builtin.command: setenforce 1
+      command: setenforce 1
       when: ansible_selinux.status == "enabled"
 ```
 
@@ -400,7 +401,7 @@ wget http://server.example.com/roles/role2.tar.gz
 
 # Extract and rename first role
 tar -xzf role1.tar.gz
-mv role1 apache
+mv role1 role55
 
 # Extract second role
 tar -xzf role2.tar.gz
@@ -415,7 +416,7 @@ tar -xzf role2.tar.gz
   become: true
 
   roles:
-    - apache
+    - role55
     - role2
 ```
 
@@ -447,12 +448,12 @@ ansible-galaxy init apache
 ---
 # tasks file for apache
 - name: Install httpd package
-  ansible.builtin.dnf:
+  dnf:
     name: httpd
     state: present
 
 - name: Start and enable httpd service
-  ansible.builtin.service:
+  service:
     name: httpd
     state: started
     enabled: true
@@ -524,21 +525,21 @@ echo "page_content: 'This is a DATABASE server'" > group_vars/prod.yml
 
   tasks:
     - name: Install httpd and firewalld
-      ansible.builtin.dnf:
+      dnf:
         name:
           - httpd
           - firewalld
         state: present
 
     - name: Open port 80 in firewall
-      ansible.posix.firewalld:
+      firewalld:
         port: 80/tcp
         permanent: true
         state: enabled
         immediate: true
 
     - name: Enable and start services
-      ansible.builtin.service:
+      service:
         name: "{{ item }}"
         state: started
         enabled: true
@@ -547,11 +548,9 @@ echo "page_content: 'This is a DATABASE server'" > group_vars/prod.yml
         - firewalld
 
     - name: Deploy the web page template
-      ansible.builtin.template:
+      template:
         src: templates/index.html.j2
         dest: /var/www/html/index.html
-        owner: apache
-        group: apache
         mode: '0644'
 ```
 
@@ -574,7 +573,7 @@ ansible all -m shell -a "firewall-cmd --list-ports"
 
 ### Requirements
 
-1. Create a directory with an `index.html` file
+1. Create a directory /etc/mywebdir with an `index.html` file inside
 2. Create a symbolic link from this directory to `/var/www/html/`
 3. Verify the content is accessible via HTTP
 
@@ -590,25 +589,19 @@ ansible all -m shell -a "firewall-cmd --list-ports"
 
   tasks:
     - name: Create custom directory
-      ansible.builtin.file:
-        path: /opt/mywebdir
+      file:
+        path: /etc/mywebdir
         state: directory
         mode: '0755'
 
     - name: Create index.html
-      ansible.builtin.copy:
-        dest: /opt/mywebdir/index.html
-        content: |
-          <html>
-            <body>
-              <h1>Welcome to {{ ansible_hostname }}</h1>
-            </body>
-          </html>
-        mode: '0644'
+      copy:
+        dest: /etc/mywebdir/index.html
+        content: Welcome to {{ ansible_hostname }}
 
     - name: Create symbolic link
-      ansible.builtin.file:
-        src: /opt/mywebdir
+      file:
+        src: /etc/mywebdir
         dest: /var/www/html/mywebdir
         state: link
 ```
@@ -638,7 +631,8 @@ ansible all -m shell -a "ls -l /var/www/html/mywebdir"
    - BIOS version
    - RAM in MB
    - vda disk size
-   - vdb disk size (or NONE if not present)
+   - vdb disk size
+3.  NONE if somthing not present 
 
 ### Solution
 
@@ -660,37 +654,37 @@ vim facts.txt
 
   tasks:
     - name: Download the template file
-      ansible.builtin.get_url:
+      get_url:
         url: http://server.example.com/system_info.txt
         dest: /tmp/system_info.txt
         mode: '0644'
 
     - name: Set hostname
-      ansible.builtin.lineinfile:
+      lineinfile:
         path: /tmp/system_info.txt
         regexp: '^HOST_NAME='
         line: 'HOST_NAME={{ ansible_hostname }}'
 
     - name: Set BIOS version
-      ansible.builtin.lineinfile:
+      lineinfile:
         path: /tmp/system_info.txt
         regexp: '^BIOS_VERSION='
         line: 'BIOS_VERSION={{ ansible_bios_version }}'
 
     - name: Set RAM size
-      ansible.builtin.lineinfile:
+      lineinfile:
         path: /tmp/system_info.txt
         regexp: '^MEMORY='
         line: 'MEMORY={{ ansible_memtotal_mb }}'
 
     - name: Set vda size
-      ansible.builtin.lineinfile:
+      lineinfile:
         path: /tmp/system_info.txt
         regexp: '^VDA_SIZE='
         line: 'VDA_SIZE={{ ansible_devices.vda.size | default("NONE") }}'
 
     - name: Set vdb size
-      ansible.builtin.lineinfile:
+      lineinfile:
         path: /tmp/system_info.txt
         regexp: '^VDB_SIZE='
         line: 'VDB_SIZE={{ ansible_devices.vdb.size | default("NONE") }}'
@@ -733,7 +727,7 @@ Create a playbook that:
 
   tasks:
     - name: Create new partition
-      community.general.parted:
+      parted:
         device: /dev/vdb
         number: 1
         state: present
@@ -741,29 +735,29 @@ Create a playbook that:
         part_end: 800MiB
 
     - name: Create volume group
-      community.general.lvg:
+      lvg:
         vg: vg_database
         pvs: /dev/vdb1
 
     - name: Create logical volume
-      community.general.lvol:
+      lvol:
         vg: vg_database
         lv: lv_mysql
-        size: 512m
+        size: 512
 
     - name: Create ext4 filesystem
-      community.general.filesystem:
+      filesystem:
         fstype: ext4
         dev: /dev/vg_database/lv_mysql
 
     - name: Create mount point directory
-      ansible.builtin.file:
+      file:
         path: /mnt/mysql_data
         state: directory
         mode: '0755'
 
     - name: Mount the filesystem permanently
-      ansible.posix.mount:
+      mount:
         path: /mnt/mysql_data
         src: /dev/vg_database/lv_mysql
         fstype: ext4
@@ -791,7 +785,7 @@ ansible all -m shell -a "cat /etc/fstab | grep mysql"
 ### Requirements
 
 1. Create a file named `secret` containing the password `password`
-2. Create an encrypted vault file using the password from `secret`
+2. Create an encrypted vault file called **vault.yml** using the password from `secret`
 3. The vault should contain a variable `user_password` set to `devops`
 
 ### Solution
@@ -877,7 +871,7 @@ users:
 
   tasks:
     - name: Create developer users
-      ansible.builtin.user:
+      user:
         name: "{{ item.name }}"
         password: "{{ user_password | password_hash('sha512') }}"
         groups: developers
@@ -886,10 +880,10 @@ users:
       when: item.job == "developer"
 
     - name: Create database users
-      ansible.builtin.user:
+      user:
         name: "{{ item.name }}"
         password: "{{ user_password | password_hash('sha512') }}"
-        groups: dba
+        groups: database
         state: present
       loop: "{{ users }}"
       when: item.job == "database"
@@ -966,12 +960,12 @@ Create a cron job that:
 
   tasks:
     - name: Ensure user natasha exists
-      ansible.builtin.user:
+      user:
         name: natasha
         state: present
 
     - name: Create cron job for natasha
-      ansible.builtin.cron:
+      cron:
         name: "Check system status"
         user: natasha
         minute: "*/2"
@@ -1029,18 +1023,18 @@ cat inventory
 
 | Module | Purpose | Example |
 |--------|---------|---------|
-| `ansible.builtin.copy` | Copy files | `copy: dest=/path content="text"` |
-| `ansible.builtin.template` | Deploy Jinja2 templates | `template: src=file.j2 dest=/path` |
-| `ansible.builtin.dnf` | Manage packages | `dnf: name=httpd state=present` |
-| `ansible.builtin.service` | Manage services | `service: name=httpd state=started` |
-| `ansible.builtin.user` | Manage users | `user: name=john state=present` |
-| `ansible.builtin.group` | Manage groups | `group: name=admins state=present` |
-| `ansible.builtin.file` | Manage files/dirs | `file: path=/dir state=directory` |
-| `ansible.builtin.lineinfile` | Modify file lines | `lineinfile: path=/file regexp='^X' line='X=value'` |
-| `ansible.builtin.get_url` | Download files | `get_url: url=http://... dest=/path` |
-| `community.general.parted` | Partition disks | `parted: device=/dev/vdb number=1` |
-| `community.general.lvg` | Manage VGs | `lvg: vg=myvg pvs=/dev/vdb1` |
-| `community.general.lvol` | Manage LVs | `lvol: vg=myvg lv=mylv size=512m` |
+| `copy` | Copy files | `copy: dest=/path content="text"` |
+| `template` | Deploy Jinja2 templates | `template: src=file.j2 dest=/path` |
+| `dnf` | Manage packages | `dnf: name=httpd state=present` |
+| `service` | Manage services | `service: name=httpd state=started` |
+| `user` | Manage users | `user: name=john state=present` |
+| `group` | Manage groups | `group: name=admins state=present` |
+| `file` | Manage files/dirs | `file: path=/dir state=directory` |
+| `lineinfile` | Modify file lines | `lineinfile: path=/file regexp='^X' line='X=value'` |
+| `get_url` | Download files | `get_url: url=http://... dest=/path` |
+| `parted` | Partition disks | `parted: device=/dev/vdb number=1` |
+| `lvg` | Manage VGs | `lvg: vg=myvg pvs=/dev/vdb1` |
+| `lvol` | Manage LVs | `lvol: vg=myvg lv=mylv size=512m` |
 
 ### Useful Commands
 
@@ -1078,12 +1072,12 @@ ansible-vault view vault.yml
 
 ---
 
-## Good Luck! 🎯
+## Good Luck! 
 
 Remember:
-- ✅ Read each question carefully
-- ✅ Test your playbooks before final execution
-- ✅ Verify results after each task
-- ✅ Use proper YAML formatting
-- ✅ Always use `become: true` when needed
-- ✅ Keep vault passwords secure
+- Read each question carefully
+- Test your playbooks before final execution
+- Verify results after each task
+- Use proper YAML formatting
+- Always use `become: true` when needed
+- Keep vault passwords secure
