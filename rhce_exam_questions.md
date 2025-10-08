@@ -121,6 +121,12 @@ wget http://server.example.com/collections/file1.tar.gz
 wget http://server.example.com/collections/file2.tar.gz
 wget http://server.example.com/collections/file3.tar.gz
 
+# The requirements.yml need to be like this
+---
+collections:
+  - ansible.posix
+  - community.general
+
 # Install collections using requirements file
 ansible-galaxy collection install -r requirements.yml -p /home/george/ansible/mycollection
 ```
