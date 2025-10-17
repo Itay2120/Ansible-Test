@@ -105,45 +105,83 @@ ansible all --list-hosts
 
 ### Requirements
 
-1. Create a directory named `mycollection`
-2. Download 3 collection files from a provided URL
-3. Install these files to the Ansible collection path
+Install 3 collection files from provided URLs to the Ansible collection path.
 
-### Solution
+**Note**: Read the exam question carefully - if it explicitly asks to "download files to a directory" use Option 1, otherwise use Option 2.
 
+---
+
+### Option 1: Download First, Then Install (If exam asks to "download" or "create mycollection directory")
 ```bash
 # Create collection directory
-mkdir -p mycollection
-cd mycollection
+mkdir -p /home/george/ansible/mycollection
+cd /home/george/ansible/mycollection
 
-# Download collection files (replace with actual URLs from exam)
-wget http://server.example.com/collections/file1.tar.gz
-wget http://server.example.com/collections/file2.tar.gz
-wget http://server.example.com/collections/file3.tar.gz
+# Download collection files (use actual URLs from exam)
+wget http://server.example.com/collections/collection1.tar.gz
+wget http://server.example.com/collections/collection2.tar.gz
+wget http://server.example.com/collections/collection3.tar.gz
 
-# The requirements.yml need to be like this
+# Install collections from downloaded files
+ansible-galaxy collection install collection1.tar.gz -p /home/george/.ansible/collections
+ansible-galaxy collection install collection2.tar.gz -p /home/george/.ansible/collections
+ansible-galaxy collection install collection3.tar.gz -p /home/george/.ansible/collections
+```
+
+**Alternative with requirements.yml:**
+```bash
+# After downloading, create requirements file
+cat > requirements.yml 
 ---
 collections:
-  - file1.tar.gz
-  - file2.tar.gz
-  - file3.tar.gz
+  - name: collection1.tar.gz
+    type: file
+  - name: collection2.tar.gz
+    type: file
+  - name: collection3.tar.gz
+    type: file
 
-# Install collections using requirements file
-ansible-galaxy collection install -r requirements.yml -p /home/george/ansible/mycollection
+# Install from requirements
+ansible-galaxy collection install -r requirements.yml -p /home/george/.ansible/collections
 ```
 
-**Alternative: Install directly from files**
+---
 
+### Option 2: Install Directly from URL (Faster - if exam doesn't require download step)
 ```bash
-ansible-galaxy collection install file1.tar.gz -p /home/george/ansible/mycollection
-ansible-galaxy collection install file2.tar.gz -p /home/george/ansible/mycollection
-ansible-galaxy collection install file3.tar.gz -p /home/george/ansible/mycollection
+cd /home/george/ansible
+
+# Install each collection directly from URL
+ansible-galaxy collection install http://server.example.com/collections/collection1.tar.gz -p /home/george/.ansible/collections
+
+ansible-galaxy collection install http://server.example.com/collections/collection2.tar.gz -p /home/george/.ansible/collections
+
+ansible-galaxy collection install http://server.example.com/collections/collection3.tar.gz -p /home/george/.ansible/collections
 ```
 
-**Verify:**
-
+**Alternative with requirements.yml (Recommended):**
 ```bash
+# Create requirements file with URLs
+cat > requirements.yml
+---
+collections:
+  - source: http://server.example.com/collections/collection1.tar.gz
+  - source: http://server.example.com/collections/collection2.tar.gz
+  - source: http://server.example.com/collections/collection3.tar.gz
+
+# Install all collections in one command
+ansible-galaxy collection install -r requirements.yml -p /home/george/.ansible/collections
+```
+
+---
+
+### Verify (Both Options):
+```bash
+# List installed collections
 ansible-galaxy collection list
+
+# Check collections directory
+ls -la /home/george/.ansible/collections/ansible_collections/
 ```
 
 ---
@@ -387,35 +425,66 @@ ansible all -m shell -a "cat /etc/selinux/config | grep ^SELINUX="
 
 ---
 
-## Task 7: Install and Use Existing Roles
+## Task 7: Install Roles Using Ansible Galaxy
 
 ### Requirements
 
-1. Download 2 role files from a provided URL to the roles directory
-2. Rename the first role to a specified name
-3. Create a playbook that executes both roles
+1. Create a requirements file named `requirements.yml` in the roles directory
+2. Download 2 role files from provided URLs using `ansible-galaxy`
+3. The URLs will be something like:
+   - `http://server.example.com/roles/role1.tar.gz`
+   - `http://server.example.com/roles/role2.tar.gz`
 
 ### Solution
-
 ```bash
 # Create roles directory
 mkdir -p roles
 cd roles
 
-# Download role files (URLs provided in exam)
-wget http://server.example.com/roles/role1.tar.gz
-wget http://server.example.com/roles/role2.tar.gz
+# Create requirements file
+vim requirements.yml
+```
 
-# Extract and rename first role
-tar -xzf role1.tar.gz
+**requirements.yml content:**
+```yaml
+---
+- src: http://server.example.com/roles/role1.tar.gz
+  name: role1
+
+- src: http://server.example.com/roles/role2.tar.gz
+  name: role2
+```
+
+**Install roles from requirements file:**
+```bash
+ansible-galaxy install -r requirements.yml -p /home/george/ansible/roles
+```
+
+**Verify:**
+```bash
+ansible-galaxy list
+ls -la /home/george/ansible/roles/
+```
+
+---
+
+## Task 8: Use Existing Roles with Modification
+
+### Requirements
+
+1. Rename the first role (role1) to a specified name (e.g., `role55` or `webserver`)
+2. Create a playbook that executes both roles on specified hosts
+
+### Solution
+```bash
+# Navigate to roles directory
+cd /home/george/ansible/roles
+
+# Rename the first role (use the name specified in the exam)
 mv role1 role55
-
-# Extract second role
-tar -xzf role2.tar.gz
 ```
 
 **Create `use_roles.yml`:**
-
 ```yaml
 ---
 - name: Execute downloaded roles
@@ -428,35 +497,51 @@ tar -xzf role2.tar.gz
 ```
 
 **Execute:**
-
 ```bash
 ansible-playbook use_roles.yml
 ```
 
----
+**Verify:**
+```bash
+# Check that both roles executed successfully
+ansible all -m shell -a "systemctl status httpd"  # If roles install services
+```
 
-## Task 8: Create Custom Role
+## Task 9: Deploy Apache Web Server with Custom Content
 
 ### Requirements
 
-1. Create a role named **apache** that installs the `httpd` package
-2. Create a playbook that applies this role to specified groups
+1. Create a role named **apache** that:
+   - Installs `httpd` and `firewalld` packages
+   - Starts and enables both services
+   - Opens port 80 in the firewall
+   
+2. Create a Jinja2 template that displays:
+   - A greeting message with the hostname
+   - The IP address of the managed host
+   
+3. Create a playbook that applies this role to all hosts
 
 ### Solution
 
+**Step 1: Create the role structure**
 ```bash
 # Create role structure
+cd /home/george/ansible/roles
 ansible-galaxy init apache
 ```
 
-**Edit `roles/apache/tasks/main.yml`:**
+**Step 2: Edit role tasks**
 
+**Edit `roles/apache/tasks/main.yml`:**
 ```yaml
 ---
 # tasks file for apache
-- name: Install httpd package
+- name: Install httpd and firewalld packages
   dnf:
-    name: httpd
+    name:
+      - httpd
+      - firewalld
     state: present
 
 - name: Start and enable httpd service
@@ -464,13 +549,38 @@ ansible-galaxy init apache
     name: httpd
     state: started
     enabled: true
+
+- name: Start and enable firewalld service
+  service:
+    name: firewalld
+    state: started
+    enabled: true
+
+- name: Open port 80 in firewall
+  firewalld:
+    port: 80/tcp
+    permanent: true
+    state: enabled
+    immediate: true
+
+- name: Deploy the web page template
+  ansible.builtin.template:
+    src: index.html.j2
+    dest: /var/www/html/index.html
 ```
 
-**Create `apache_deploy.yml`:**
+**Step 3: Create the Jinja2 template**
 
+**Create `roles/apache/templates/index.html.j2`:**
+```jinja2
+    Hello from {{ ansible_hostname }} IP Address: {{ ansible_default_ipv4.address }}
+```
+**Step 5: Create the playbook**
+
+**Create `apache_deploy.yml`:**
 ```yaml
 ---
-- name: Use the apache role
+- name: Deploy Apache web server with custom content
   hosts: all
   become: true
 
@@ -478,105 +588,113 @@ ansible-galaxy init apache
     - apache
 ```
 
-**Execute:**
-
+**Step 6: Execute the playbook**
 ```bash
+# Run the playbook
 ansible-playbook apache_deploy.yml
 ```
 
 **Verify:**
-
 ```bash
+# Check services are running
 ansible all -m shell -a "systemctl status httpd"
+ansible all -m shell -a "systemctl status firewalld"
+
+# Check firewall port
+ansible all -m shell -a "firewall-cmd --list-services"
+
+# Check web content
+ansible all -m shell -a "curl http://localhost"
 ```
 
----
+### Important Notes:
 
-## Task 9: Deploy Web Content with Templates
+**Key Points:**
+- The template must be located in `roles/apache/templates/` directory
+- Uses `{{ ansible_hostname }}` for the server name
+- Uses `{{ ansible_default_ipv4.address }}` for the IP address
+- Firewall service `http` is equivalent to port `80/tcp`
+- Both httpd and firewalld must be enabled to start at boot
+
+## Task 10: Generate /etc/hosts File Using Template
 
 ### Requirements
 
-Create a playbook that:
-1. Installs `httpd` and `firewalld` packages
-2. Ensures both services start after reboot
-3. Opens port 80 in the firewall
-4. Deploys a Jinja2 template with different content per group
+1. Download a Jinja2 template file named `hosts.j2` from a provided URL
+2. Edit the template to include the first two lines from `/etc/hosts`:
+```
+   127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4
+   ::1         localhost localhost.localdomain localhost6 localhost6.localdomain6
+```
+3. Add all hosts from your inventory with their IP addresses, FQDNs, and hostnames
+4. Create a playbook that deploys this template to `/etc/myhosts` on **dev** hosts only
 
 ### Solution
 
-**Create `templates/index.html.j2`:**
-
-```jinja2
-<html>
-  <body>
-    <h1>{{ page_content }}</h1>
-  </body>
-</html>
-```
-
-**Create group variables:**
-
+**Step 1: Download and edit the template file**
 ```bash
-mkdir -p group_vars
-echo "page_content: 'This is a WEB server'" > group_vars/dev.yml
-echo "page_content: 'This is a DATABASE server'" > group_vars/prod.yml
+cd /home/george/ansible
+
+# Download the template (if provided in exam)
+wget http://server.example.com/hosts.j2
+
+# Or create it manually
+vim hosts.j2
 ```
 
-**Create `webserver.yml`:**
+**hosts.j2 template content:**
+```jinja2
+127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4
+::1         localhost localhost.localdomain localhost6 localhost6.localdomain6
 
+{% for host in groups['all'] %}
+{{ hostvars[host]['ansible_facts']['default_ipv4']['address'] }} {{ hostvars[host]['ansible_facts']['fqdn'] }} {{ hostvars[host]['ansible_facts']['hostname'] }}
+{% endfor %}
+```
+
+**Step 2: Create the playbook**
+```bash
+vim gen_hosts.yml
+```
+
+**gen_hosts.yml content:**
 ```yaml
 ---
-- name: Install httpd, firewall, and create template
+- name: Generate /etc/myhosts file from template
   hosts: all
-  become: true
+  gather_facts: true
 
   tasks:
-    - name: Install httpd and firewalld
-      dnf:
-        name:
-          - httpd
-          - firewalld
-        state: present
-
-    - name: Open port 80 in firewall
-      firewalld:
-        port: 80/tcp
-        permanent: true
-        state: enabled
-        immediate: true
-
-    - name: Enable and start services
-      service:
-        name: "{{ item }}"
-        state: started
-        enabled: true
-      loop:
-        - httpd
-        - firewalld
-
-    - name: Deploy the web page template
+    - name: Deploy hosts template 
       template:
-        src: templates/index.html.j2
-        dest: /var/www/html/index.html
-        mode: '0644'
+        src: hosts.j2
+        dest: /etc/myhosts
 ```
 
-**Execute:**
-
+**Step 3: Execute the playbook**
 ```bash
-ansible-playbook webserver.yml
+# Syntax check
+ansible-playbook gen_hosts.yml --syntax-check
+
+# Run the playbook
+ansible-playbook gen_hosts.yml
 ```
 
 **Verify:**
-
 ```bash
-ansible all -m shell -a "curl http://localhost"
-ansible all -m shell -a "firewall-cmd --list-ports"
+# Check the content of /etc/myhosts on dev hosts
+ansible all -m shell -a "cat /etc/myhosts"
+
+# Expected output example:
+# 127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4
+# ::1         localhost localhost.localdomain localhost6 localhost6.localdomain6
+# 172.25.250.9 node1.example.com node1
+# 172.25.250.10 node2.example.com node2
+# 172.25.250.11 node3.example.com node3
+# 172.25.250.12 node4.example.com node4
 ```
 
----
-
-## Task 10: Create Symbolic Link for Web Content
+## Task 11: Create Symbolic Link for Web Content
 
 ### Requirements
 
@@ -628,7 +746,7 @@ ansible all -m shell -a "ls -l /var/www/html/mywebdir"
 
 ---
 
-## Task 11: Customize System Information File
+## Task 12: Customize System Information File
 
 ### Requirements
 
@@ -663,36 +781,41 @@ vim facts.txt
     - name: Download the template file
       get_url:
         url: http://server.example.com/system_info.txt
-        dest: /tmp/system_info.txt
+        dest: /root/system_info.txt
         mode: '0644'
+
+    - name: copy to all nodes
+      copy:
+        src: /root/system_info.txt
+        dest: /root/system_info.txt
 
     - name: Set hostname
       lineinfile:
-        path: /tmp/system_info.txt
+        path: /root/system_info.txt
         regexp: '^HOST_NAME='
         line: 'HOST_NAME={{ ansible_hostname }}'
 
     - name: Set BIOS version
       lineinfile:
-        path: /tmp/system_info.txt
+        path: /root/system_info.txt
         regexp: '^BIOS_VERSION='
         line: 'BIOS_VERSION={{ ansible_bios_version }}'
 
     - name: Set RAM size
       lineinfile:
-        path: /tmp/system_info.txt
+        path: /root/system_info.txt
         regexp: '^MEMORY='
         line: 'MEMORY={{ ansible_memtotal_mb }}'
 
     - name: Set vda size
       lineinfile:
-        path: /tmp/system_info.txt
+        path: /root/system_info.txt
         regexp: '^VDA_SIZE='
         line: 'VDA_SIZE={{ ansible_devices.vda.size | default("NONE") }}'
 
     - name: Set vdb size
       lineinfile:
-        path: /tmp/system_info.txt
+        path: /root/system_info.txt
         regexp: '^VDB_SIZE='
         line: 'VDB_SIZE={{ ansible_devices.vdb.size | default("NONE") }}'
 ```
@@ -711,83 +834,77 @@ ansible all -m shell -a "cat /tmp/system_info.txt"
 
 ---
 
-## Task 12: Create LVM Storage
+## Task 13: Create Logical Volume with Conditional Size
 
 ### Requirements
 
-Create a playbook that:
-1. Creates a new partition on `/dev/vdb`
-2. Creates a volume group named `vg_database`
-3. Creates a logical volume named `lv_mysql` with 512MB size
-4. Formats the LV with ext4 filesystem
-5. Mounts it permanently
+Create a playbook that performs the following on all hosts:
+
+1. Create a logical volume named `lv_mysql` on existing VG `vg_database`
+2. Try to create it with **1500 MiB**
+3. If not enough space, create it with **800 MiB** instead
+4. If VG doesn't exist, display error message
+5. Format with ext4 file system
 
 ### Solution
 
 **Create `storage.yml`:**
-
 ```yaml
 ---
-- name: Configure LVM storage
+- name: Create logical volume with error handling
   hosts: all
   become: true
 
   tasks:
-    - name: Create new partition
-      parted:
-        device: /dev/vdb
-        number: 1
-        state: present
-        part_start: 1MiB
-        part_end: 800MiB
+    - name: Check if VG exists
+      shell: vgdisplay vg_database
+      register: vg_check
+      failed_when: false
+      changed_when: false
 
-    - name: Create volume group
-      lvg:
-        vg: vg_database
-        pvs: /dev/vdb1
+    - name: Display error if VG does not exist
+      debug:
+        msg: "Volume group vg_database does not exist"
+      when: vg_check.rc != 0
 
-    - name: Create logical volume
+    - name: Try to create LV with 1500 MiB
       lvol:
         vg: vg_database
         lv: lv_mysql
-        size: 512
+        size: 1500
+      ignore_errors: true
+      register: lv_large
+      when: vg_check.rc == 0
+
+    - name: Create LV with 800 MiB if first attempt failed
+      lvol:
+        vg: vg_database
+        lv: lv_mysql
+        size: 800
+      when:
+        - vg_check.rc == 0
+        - lv_large is failed
 
     - name: Create ext4 filesystem
       filesystem:
         fstype: ext4
         dev: /dev/vg_database/lv_mysql
-
-    - name: Create mount point directory
-      file:
-        path: /mnt/mysql_data
-        state: directory
-        mode: '0755'
-
-    - name: Mount the filesystem permanently
-      mount:
-        path: /mnt/mysql_data
-        src: /dev/vg_database/lv_mysql
-        fstype: ext4
-        state: mounted
+      when: vg_check.rc == 0
 ```
 
 **Execute:**
-
 ```bash
 ansible-playbook storage.yml
 ```
 
 **Verify:**
-
 ```bash
-ansible all -m shell -a "lsblk"
+ansible all -m shell -a "lvs"
 ansible all -m shell -a "df -h /mnt/mysql_data"
-ansible all -m shell -a "cat /etc/fstab | grep mysql"
 ```
-
 ---
 
-## Task 13: Create Ansible Vault
+## Task 14: Create Ansible Vault
 
 ### Requirements
 
@@ -830,7 +947,7 @@ ansible-vault view vault.yml --vault-password-file=secret
 
 ---
 
-## Task 14: Create Users from Encrypted File
+## Task 15: Create Users from Encrypted File
 
 ### Requirements
 
@@ -910,7 +1027,7 @@ ansible all -m shell -a "getent passwd | grep user"
 
 ---
 
-## Task 15: Change Vault Password
+## Task 16: Change Vault Password
 
 ### Requirements
 
@@ -946,7 +1063,7 @@ ansible-vault view vault.yml --vault-password-file=new_secret
 
 ---
 
-## Task 16: Create Cron Job
+## Task 17: Create Cron Job
 
 ### Requirements
 
