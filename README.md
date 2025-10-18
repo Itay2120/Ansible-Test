@@ -116,7 +116,7 @@ Before using these materials, ensure you have:
 ## Tips for Success
 
 ### Before the Exam:
-- Practice all 16 tasks multiple times
+- Practice all 17 tasks multiple times
 - Get comfortable with `ansible-doc` command
 - Memorize common module names and parameters
 - Practice typing playbooks quickly and accurately
