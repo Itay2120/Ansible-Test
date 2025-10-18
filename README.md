@@ -2,7 +2,7 @@
 
 ## Overview
 
-This repository contains **16 real exam-style questions** from the **Red Hat Certified Engineer (RHCE)** exam, complete with detailed solutions and Ansible playbook examples.
+This repository contains **17 real exam-style questions** from the **Red Hat Certified Engineer (RHCE)** exam, complete with detailed solutions and Ansible playbook examples.
 
 These questions were documented after taking the actual RHCE exam and have been reorganized into a professional, easy-to-follow format to help others prepare for the certification.
 
