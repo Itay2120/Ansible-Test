@@ -12,7 +12,7 @@ These questions were documented after taking the actual RHCE exam and have been 
 
 This repository includes:
 
-- **16 Complete Exam Tasks** - Real questions from the RHCE exam
+- **17 Complete Exam Tasks** - Real questions from the RHCE exam
 - **Detailed Solutions** - Step-by-step Ansible playbooks with explanations
 - **Syntax-Highlighted Code** - Easy-to-copy YAML and Bash examples
 - **Verification Commands** - How to validate each solution
